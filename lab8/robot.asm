@@ -1,6 +1,6 @@
 ;***********************************************************
 ;*
-;*	Enter Name of file here
+;*	Robot.asm
 ;*
 ;*	Enter the description of the program here
 ;*
@@ -108,7 +108,7 @@ INIT:
 	;Don't know if this is necessary, but set UCSR1A to 0b00000000
 	;ldi 	mpr, 0b00000000
 	;sts 	UCSR1A, mpr
-	;Enable receiver and enable receive interrupts
+	;Enable receiver and enable receive interrupts, also turn on Transmitter
 	ldi 	mpr, (1<<RXEN1 | 1<<RXCIE1 | 1<<TXEN0) ; 
 	sts		UCSR1B, mpr
 	;Set frame format: 8 data bits, 2 stop bits
@@ -127,13 +127,13 @@ INIT:
 	sei
 	;Other
 	ldi 	YL, low(Command)
-	ldi 	YH, high(command)
-	ldi		mpr, 0
+	ldi 	YH, high(Command)
+	ldi		mpr, 0 ; Load 0 into Memory pointed by Y 
 	st		Y, mpr
 	
 	ldi 	ZL, low(FreezeCount)
 	ldi 	ZH, high(FreezeCount)
-	ldi		mpr, 0b00000011
+	ldi		mpr, 0b00000011 ; Load value 3 into FreezeCount, to represent 3 freezes
 	st		Z, mpr
 
 ;***********************************************************
@@ -149,6 +149,7 @@ MAIN:
 
 USART_Receive:
 
+		; Saves Register Values
 		push	mpr2
 		push 	mpr
 		in		mpr, SREG
@@ -159,95 +160,111 @@ USART_Receive:
 		push	ZL
 		push	ZH
 
-		lds		mpr, UDR1
-		cpi		mpr, Freeze
-		breq	FreezeRobot
-		sbrc	mpr, 7
-		rjmp	CheckCommand
-		rjmp	CheckID
+		lds		mpr, UDR1		; Read value from Receiver
+		cpi		mpr, Freeze		; Check if our bot got frozen
+		breq	FreezeRobot		; Go to FreezeRobot if it did
+		sbrc	mpr, 7			; Check if received value is the ID or Command
+								; by checking the 7th bit of packet
+		rjmp	CheckCommand	; If not ID, go to CheckCommand 
+		rjmp	CheckID			; If ID, go to CheckID
 
 CheckID:
 
-		ldi 	YL, low(Command)
-		ldi 	YH, high(command)
+		ldi 	YL, low(Command)	; Load low bite of Command
+		ldi 	YH, high(command)	; Load high bite of Command
 		ld		mpr2, Y
 		
-		cpi 	mpr, BotAddress
-		breq	Correct
-		ldi		mpr2, 0
+		cpi 	mpr, BotAddress 	; Compare ID given with our BotID
+		breq	Correct				; If correct, go to Correct
+		ldi		mpr2, 0				; If not correct, place 0 in Y
 		st		Y, mpr2
 
-		rjmp 	USART_Receiver_end
+		rjmp 	USART_Receiver_end 	; Jump to the end
 
 Correct:
 
-		ldi		mpr2, 1
+		ldi		mpr2, 1				; If correct value, place a 1 in Y
 		st		Y, mpr2
 
-		rjmp 	USART_Receiver_end
+		rjmp 	USART_Receiver_end 	; Jump to the end
 
 CheckCommand:
 
-		ldi 	YL, low(Command)
+		ldi 	YL, low(Command) 	; Load Command
 		ldi 	YH, high(command)
-		ld		mpr2, Y
+		ld		mpr2, Y				; If Y contains 1, then we have the correct ID
 		sbrs	mpr2, 0
-		rjmp	USART_Receiver_end
-		rol 	mpr
-		;ldi		waitcnt, WTime	; Wait for 1 second
-		;rcall	Wait
-		cpi		mpr, SendFreezeR
-		breq	FreezeOthers
-		out		PORTB, mpr
+		rjmp	USART_Receiver_end  ; If Y contains 0, then we don't have the correct
+									; Id and we skip to the end to ignore the command
+		rol 	mpr					; Rotate Left to make the LED's appear correct
 
-		rjmp	USART_Receiver_end
+		cpi		mpr, SendFreezeR 	; Check if we receive the freeze others command
+		breq	FreezeOthers		; Jump to FreezeOthers
+		out		PORTB, mpr			; Otherwise, just output the command to PORTB
+
+		rjmp	USART_Receiver_end	; Jump to the end
 
 FreezeRobot:
 
 		; Turn off interupts for duration of function
 		cli
 
-		ldi		mpr2, Halt
-		rol		mpr2
-		out		PORTB, mpr2
+		ldi		mpr2, Halt 		; Load Halt command into mpr2
+		rol		mpr2			; Rotate Left to make LED output correct
+		out		PORTB, mpr2		; Output Halt Command to PORTB
+
+		; Inefficiently freeze for 5 seconds
+		ldi		waitcnt, WTime	; Wait for 1 second
+		rcall	Wait
+		ldi		waitcnt, WTime	; Wait for 1 second
+		rcall	Wait
+		ldi		waitcnt, WTime	; Wait for 1 second
+		rcall	Wait
+		ldi		waitcnt, WTime	; Wait for 1 second
+		rcall	Wait
 		ldi		waitcnt, WTime	; Wait for 1 second
 		rcall	Wait
 
-		ldi		ZL, low(FreezeCount)
+		ldi		ZL, low(FreezeCount) ; Load Z pointer to FreezeCount
 		ldi		ZH, high(FreezeCount)
 		ld		mpr, Z
 
-		dec		mpr
-		breq	Die
-		st		Z, mpr
+		dec		mpr 			; Dec FreezeCount because we got frozen
+		breq	Die				; If we reach 0 (been frozen 3 times), then kill
+								; our robot.
+		st		Z, mpr			; Store new value in Z
 
 		; Turn interupts back on
 		ldi		mpr, 0b00000011
 		out 	EIFR, mpr ; Clear External Interupt Flag Register
 		sei
 
-		rjmp 	USART_Receiver_end
+		rjmp 	USART_Receiver_end	; Jump to end
 
 FreezeOthers:
 
-		ldi		mpr, 0b01010101
-		out		PORTB, mpr
-		sts		UDR1, mpr
-Send_Loop:
-		lds		mpr, UCSR1A
-		sbrs	mpr, TXC1
-		rjmp	Send_Loop
-Clear_Input:
-		lds 	mpr, UCSR1A
-		sbrs 	mpr, RXC1
-		rjmp 	Clear_Input
-		lds		mpr, UDR1
+		ldi		mpr, 0b01010101	; Load Freeze Command to others
+		out		PORTB, mpr		; Let User know that we're sending Freeze 
+								; Command by sending output to PORTB
+		sts		UDR1, mpr		; Send freeze command to others
 
-		rjmp	USART_Receiver_end
+Send_Loop:
+		lds		mpr, UCSR1A 	; Load values of UCSR1A
+		cpi		mpr, 0b11100000 ; Check if we're done transmitting
+		brne 	Send_Loop		; If not, loop back until we finish
+
+Clear_Input:
+		lds 	mpr, UCSR1A		; Load values of UCSR1A
+		cpi		mpr, 0b11100000 ; Check if we're done receiving our own freeze command
+		brne 	Clear_Input		; If not, loop back until we finish
+		lds		mpr, UDR1		; Ready UDR1 and therefor clear it so we don't
+								; accidentally receieve our own
+
+		rjmp	USART_Receiver_end ; Jump to the end
 
 		
 USART_Receiver_end:
-
+		; Pop old values off the stack
 		pop		ZH
 		pop 	ZL
 		pop 	YH
@@ -260,7 +277,7 @@ USART_Receiver_end:
 		ret
 
 Die:
-		rjmp 	Die
+		rjmp 	Die ; Go into an infinite loop if we were frozen 3 times
 
 
 HitRight:							; Begin a function with a label

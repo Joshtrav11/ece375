@@ -139,77 +139,77 @@ NEXT5:
 ;***********************************************************
 ForwardCommand:
 
-		rcall TransmitAddress
+		rcall TransmitAddress 	; Transmit the ID of the bot first
 		
-		ldi		mpr, MovFwd
-		out		PORTB, mpr
-		sts		UDR1, mpr
+		ldi		mpr, MovFwd		; Load MovFwd command
+		out		PORTB, mpr		; Output command to LEDS
+		sts		UDR1, mpr		; Output command to Transmitter
 
 		
 Forward_Loop:
-		lds		mpr, UCSR1A
-		cpi		mpr, SendComplete
-		brne	Forward_Loop
+		lds		mpr, UCSR1A 	; Load values of UCSR1A
+		cpi		mpr, SendComplete	; Check if we're done transmitting
+		brne	Forward_Loop		; If not, loop back until we finish
 
 		ret
 
 BackwardCommand:
 
-		rcall TransmitAddress
+		rcall TransmitAddress ; Transmit the ID of the bot first
 
-		ldi		mpr, MovBck
-		out		PORTB, mpr
-		sts		UDR1, mpr
+		ldi		mpr, MovBck		; Load MovBck command
+		out		PORTB, mpr		; Output command to LEDS
+		sts		UDR1, mpr		; Output command to Transmitter
 
 Backward_Loop:
-		lds		mpr, UCSR1A
-		cpi		mpr, SendComplete
-		brne	Backward_Loop
+		lds		mpr, UCSR1A 	; Load values of UCSR1A
+		cpi		mpr, SendComplete	; Check if we're done transmitting
+		brne	Backward_Loop		; If not, loop back until we finish
 
 		ret
 
 TurnRCommand:
 
-		rcall TransmitAddress
+		rcall TransmitAddress ; Transmit the ID of the bot first
 		
-		ldi		mpr, TurnR
-		out		PORTB, mpr
-		sts		UDR1, mpr
+		ldi		mpr, TurnR		; Load TurnR command
+		out		PORTB, mpr		; Output command to LEDS
+		sts		UDR1, mpr		; Output command to Transmitter
 
 TurnR_Loop:
-		lds		mpr, UCSR1A
-		cpi		mpr, SendComplete
-		brne	TurnR_Loop
+		lds		mpr, UCSR1A 	; Load values of UCSR1A
+		cpi		mpr, SendComplete	; Check if we're done transmitting
+		brne	TurnR_Loop		; If not, loop back until we finish
 
 		ret
 
 TurnLCommand:
 
-		rcall TransmitAddress
+		rcall TransmitAddress ; Transmit the ID of the bot first
 		
-		ldi		mpr, TurnL
-		out		PORTB, mpr
-		sts		UDR1, mpr
+		ldi		mpr, TurnL		; Load TurnL command
+		out		PORTB, mpr		; Output command to LEDS
+		sts		UDR1, mpr		; Output command to Transmitter
 
 TurnL_Loop:
-		lds		mpr, UCSR1A
-		cpi		mpr, SendComplete
-		brne	TurnL_Loop
+		lds		mpr, UCSR1A 	; Load values of UCSR1A
+		cpi		mpr, SendComplete	; Check if we're done transmitting
+		brne	TurnL_Loop		; If not, loop back until we finish
 
 		ret
 
 HaltCommand:
 
-		rcall TransmitAddress
+		rcall TransmitAddress ; Transmit the ID of the bot first
 		
-		ldi		mpr, Halt
-		out		PORTB, mpr
-		sts		UDR1, mpr
+		ldi		mpr, Halt		; Load Halt command
+		out		PORTB, mpr		; Output command to LEDS
+		sts		UDR1, mpr		; Output command to Transmitter
 
 Halt_Loop:
-		lds		mpr, UCSR1A
-		cpi		mpr, SendComplete
-		brne	Halt_Loop
+		lds		mpr, UCSR1A 	; Load values of UCSR1A
+		cpi		mpr, SendComplete	; Check if we're done transmitting
+		brne	Halt_Loop		; If not, loop back until we finish
 
 		ret
 
@@ -231,16 +231,16 @@ Halt_Loop:
 
 FreezeCommand:
 
-		rcall TransmitAddress
+		rcall TransmitAddress ; Transmit the ID of the bot first
 		
-		ldi		mpr, Freeze
-		out		PORTB, mpr
-		sts		UDR1, mpr
+		ldi		mpr, Freeze		; Load Freeze command
+		out		PORTB, mpr		; Output command to LEDS
+		sts		UDR1, mpr		; Output command to Transmitter
 
 Freeze_Loop:
-		lds		mpr, UCSR1A
-		cpi		mpr, SendComplete
-		brne	Freeze_Loop
+		lds		mpr, UCSR1A 	; Load values of UCSR1A
+		cpi		mpr, SendComplete	; Check if we're done transmitting
+		brne	Freeze_Loop		; If not, loop back until we finish
 
 		ldi		waitcnt, WTime	; Wait for 1 second
 		rcall	Wait
@@ -249,13 +249,13 @@ Freeze_Loop:
 
 TransmitAddress:
 
-		ldi		mpr, BotAddress
-		sts		UDR1, mpr
+		ldi		mpr, BotAddress	; Load bot address
+		sts		UDR1, mpr		; Send bot address
 
 Transmit_Loop:
-		lds		mpr, UCSR1A
-		cpi		mpr, SendComplete
-		brne	Transmit_Loop
+		lds		mpr, UCSR1A		; Read from UCSR1A
+		cpi		mpr, SendComplete ; Check if we complete transmittion
+		brne	Transmit_Loop	; If not, loop back until we finish
 
 		ret
 ; Wait function from previous labs
