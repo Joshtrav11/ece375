@@ -1,0 +1,17 @@
+#! /bin/bash
+
+if [ "$#" != "1" ]; then
+    echo "Usage: ./load128 [file]"
+    exit 1
+fi
+
+if [[ -r $1 && -e $1 ]]; then
+    datafilepath=$1
+    sed "s/MAINFILE/$datafilepath/g" makefile>makefile1
+    make -f makefile1 asm
+    make clean
+    rm -f makefile1
+else
+    echo "loadAsm: cannot read $datafilepath"
+    exit 1
+fi
